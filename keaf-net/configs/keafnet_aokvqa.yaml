@@ -1,0 +1,16 @@
+# KEAF-Net training configuration for A-OKVQA (direct-answer setting)
+epochs: 20
+batch_size: 64
+lr: 1.0e-4
+weight_decay: 0.01
+warmup_steps: 500
+grad_clip: 1.0
+seed: 42
+num_workers: 4
+val_every: 1
+loo_sample_size: 10
+train_annotations: data/aokvqa/train.json
+val_annotations:   data/aokvqa/val.json
+features_dir:      data/aokvqa/features
+num_answers: 3129
+ckpt_dir: checkpoints/aokvqa

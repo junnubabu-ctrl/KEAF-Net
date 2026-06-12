@@ -1,0 +1,25 @@
+# KEAF-Net training configuration for OK-VQA
+# (matches the hyperparameters in the paper, Section 5)
+
+# --- optimisation ---
+epochs: 20
+batch_size: 64
+lr: 1.0e-4
+weight_decay: 0.01
+warmup_steps: 500
+grad_clip: 1.0
+seed: 42
+num_workers: 4
+val_every: 1
+
+# --- AKF ---
+loo_sample_size: 10        # |S| triplets sampled per batch for LOO supervision
+
+# --- data paths (edit to your local extraction; see docs/DATA.md) ---
+train_annotations: data/okvqa/train.json
+val_annotations:   data/okvqa/val.json
+features_dir:      data/okvqa/features
+num_answers: 3129
+
+# --- checkpoints ---
+ckpt_dir: checkpoints/okvqa

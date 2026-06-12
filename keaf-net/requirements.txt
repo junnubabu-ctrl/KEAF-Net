@@ -1,0 +1,18 @@
+# Core (required)
+torch>=2.0
+numpy>=1.21
+pyyaml>=6.0
+
+# Real data pipeline (encoders, retrieval, preprocessing).
+# Without these the modules fall back to lightweight stubs so the pipeline
+# still runs on synthetic data.
+transformers>=4.30      # BERT-base tokenizer + model
+timm>=0.9               # ViT-B/16 grid features
+torchvision>=0.15       # Faster R-CNN region features
+sentence-transformers>=2.2  # Sentence-BERT triplet embeddings
+spacy>=3.5              # question noun-phrase extraction
+Pillow>=9.0             # image loading
+
+# Optional: logging + testing
+tensorboard>=2.10
+pytest>=7.0
