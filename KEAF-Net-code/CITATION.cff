@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this code, please cite the paper below."
+title: "KEAF-Net: Knowledge-Enhanced Adaptive Fusion Network for Visual Question Answering with Multi-Hop Graph Reasoning"
+type: software
+authors:
+  - family-names: "Junnu Babu"
+    given-names: "Noorbhasha"
+    affiliation: "Department of Computer Science, Pondicherry University (Karaikal Campus)"
+    email: junnubabu@pondiuni.ac.in
+  - family-names: "Rajamohana"
+    given-names: "S. P."
+    affiliation: "Department of Computer Science, Pondicherry University (Karaikal Campus)"
+    email: monamohanasp@pondiuni.ac.in
+keywords:
+  - visual question answering
+  - knowledge graph
+  - graph neural network
+  - heterogeneous graph
+  - multi-hop reasoning
+  - knowledge filtering
+license: MIT
+version: 0.1.0
+date-released: 2026-07-16

@@ -1,0 +1,18 @@
+# Core
+torch>=2.0
+numpy>=1.23
+pyyaml>=6.0
+tqdm>=4.64
+
+# Encoders / tokenisation (offline feature extraction)
+transformers>=4.30
+sentence-transformers>=2.2
+
+# Retrieval / NLP utilities
+spacy>=3.5
+networkx>=3.0
+nltk>=3.8
+
+# Eval / misc
+scikit-learn>=1.2
+scipy>=1.10

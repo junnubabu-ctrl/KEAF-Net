@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keaf-net"
+version = "0.1.0"
+description = "Knowledge-Enhanced Adaptive Fusion Network for Visual Question Answering"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Noorbhasha Junnu Babu", email = "junnubabu@pondiuni.ac.in" },
+    { name = "S. P. Rajamohana", email = "monamohanasp@pondiuni.ac.in" },
+]
+keywords = ["visual question answering", "knowledge graph", "graph neural network",
+            "multi-hop reasoning", "heterogeneous graph"]
+dependencies = [
+    "torch>=2.0",
+    "numpy>=1.23",
+    "pyyaml>=6.0",
+    "scipy>=1.10",
+    "tqdm>=4.64",
+]
+
+[project.optional-dependencies]
+# only needed for offline feature extraction / knowledge retrieval
+extract = ["transformers>=4.30", "sentence-transformers>=2.2", "spacy>=3.5", "nltk>=3.8"]
+dev = ["pytest>=7.0"]
+
+[tool.setuptools.packages.find]
+include = ["keaf_net*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
