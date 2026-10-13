@@ -65,9 +65,11 @@ def majority_answer(answers: Iterable[str]) -> str:
 def wilcoxon_pvalue(acc_a: Sequence[float], acc_b: Sequence[float]) -> float:
     """Two-sided Wilcoxon signed-rank test on per-question correctness.
 
-    Used in Section 6 to check that the gap between two configurations is
-    significant at p < 0.05. Returns ``1.0`` when the vectors are identical
-    (``wilcoxon`` raises on an all-zero difference).
+    Optional paired analysis helper, not evidence that any manuscript comparison
+    has been tested. Questions sharing an image are dependent; clustering and
+    multiple comparisons need an appropriate analysis outside this helper.
+    Returns ``1.0`` for identical vectors (the usual Wilcoxon call raises on an
+    all-zero difference).
     """
     if len(acc_a) != len(acc_b) or not acc_a:
         raise ValueError("paired accuracy vectors must be nonempty and aligned")

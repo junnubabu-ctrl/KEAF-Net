@@ -70,6 +70,12 @@ ablations, robustness, significance and cost analysis remain outstanding. An
 auxiliary loss weight of zero disables AKF supervision; it does not remove AKF
 gating or constitute a full no-AKF architectural ablation.
 
+The Wilcoxon function is an optional paired helper, not an executed significance
+result. Questions that share images require an appropriate clustered analysis;
+multiple comparisons require a declared correction. Per-question predictions,
+paired or image-clustered uncertainty, and their complete analysis artifacts
+remain pending. No significance or bootstrap interval is asserted here.
+
 ## Primary evaluator sources
 
 - VQA: `GT-Vision-Lab/VQA/PythonEvaluationTools/vqaEvaluation/vqaEval.py`,
