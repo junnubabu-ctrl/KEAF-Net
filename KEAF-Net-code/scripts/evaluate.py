@@ -42,7 +42,7 @@ def main() -> None:
     loader = DataLoader(dataset, batch_size=cfg.optim.batch_size, shuffle=False,
                         num_workers=cfg.data.num_workers, collate_fn=list_collate)
 
-    result = Evaluator(model, vocab, device=args.device).evaluate(loader)
+    result = Evaluator(model, vocab, device=args.device, dataset=cfg.data.dataset).evaluate(loader)
     if result["accuracy"] is not None:
         print(f"{cfg.data.dataset}/{args.split} accuracy = {100 * result['accuracy']:.2f}")
 

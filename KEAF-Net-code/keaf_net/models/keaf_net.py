@@ -40,7 +40,9 @@ class KEAFNet(nn.Module):
         self.text_norm = nn.LayerNorm(d)
         self.knowledge_norm = nn.LayerNorm(d)
 
-        self.akf = AdaptiveKnowledgeFilter(d, cfg.akf_threshold_init, cfg.akf_temperature)
+        self.akf = AdaptiveKnowledgeFilter(
+            d, cfg.akf_threshold_init, cfg.akf_temperature, cfg.akf_gate_temperature,
+        )
         self.hgaf = HGAF(d, cfg.gat_heads, cfg.gat_layers, cfg.dropout, cfg.leaky_relu_slope)
         self.mhsr = MHSR(d, cfg.num_hops, cfg.num_answers, cfg.dropout)
 
@@ -53,6 +55,12 @@ class KEAFNet(nn.Module):
         targets, node_offset = [], 0
         for b, s in enumerate(samples):
             grid = s["grid"]
+            if grid.ndim != 2 or grid.size(1) != cfg.hidden_dim:
+                raise ValueError("grid features must match the configured shared hidden width")
+            if s["tokens"].ndim != 2 or s["tokens"].size(1) != cfg.hidden_dim:
+                raise ValueError("BERT token features must match the configured shared hidden width")
+            if s["qcls"].shape != (cfg.hidden_dim,):
+                raise ValueError("question CLS must match the configured shared hidden width")
             region = self.region_proj(s["region"])
             v = self.visual_norm(torch.cat([grid, region], dim=0))
             boxes = torch.cat([s["grid_boxes"], s["region_boxes"]], dim=0)

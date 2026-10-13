@@ -23,6 +23,7 @@ from tqdm import tqdm
 
 from keaf_net.config import load_config
 from keaf_net.models.encoders import TextEncoder, VisualEncoder, patch_boxes
+from keaf_net.data.grounding import question_sha256
 
 
 def _vit_transform(image_size: int = 224):
@@ -41,8 +42,12 @@ def main() -> None:
     parser.add_argument("--split", required=True)
     parser.add_argument("--images", required=True, help="directory of COCO images")
     parser.add_argument("--image-size", type=int, default=224)
+    parser.add_argument("--interpolate-pos-encoding", action="store_true",
+                        help="explicit ViT positional interpolation for a non-224 input")
     parser.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu")
     args = parser.parse_args()
+    if args.image_size != 224 and not args.interpolate_pos_encoding:
+        parser.error("non-224 input requires --interpolate-pos-encoding and a new run configuration")
 
     from PIL import Image  # optional dependency, only needed for extraction
 
@@ -64,13 +69,27 @@ def main() -> None:
         image_id = str(rec["image_id"])
         if image_id not in seen_images:
             path = os.path.join(args.images, rec["image_file"])
-            pixel = transform(Image.open(path).convert("RGB")).unsqueeze(0).to(args.device)
-            grid = visual(pixel).squeeze(0).cpu()
-            torch.save({"feat": grid, "boxes": boxes}, os.path.join(out_root, "grid", f"{image_id}.pt"))
+            with Image.open(path) as original:
+                image = original.convert("RGB")
+                source_size = list(image.size)
+                pixel = transform(image).unsqueeze(0).to(args.device)
+            grid = visual(pixel, interpolate_pos_encoding=args.interpolate_pos_encoding).squeeze(0).cpu()
+            if grid.size(0) != boxes.size(0):
+                raise ValueError("ViT patch count does not match configured geometry")
+            torch.save({"feat": grid, "boxes": boxes,
+                        "box_coordinate_frame": "processed_pixels",
+                        "spatial_transform": "resize_only",
+                        "image_size": [args.image_size, args.image_size],
+                        "source_image_size": source_size,
+                        "position_encoding_interpolated": args.interpolate_pos_encoding},
+                       os.path.join(out_root, "grid", f"{image_id}.pt"))
             seen_images.add(image_id)
 
-        tokens, qcls = text([rec["question"]], device=args.device)
-        torch.save({"tokens": tokens.squeeze(0).cpu(), "qcls": qcls.squeeze(0).cpu()},
+        tokens, qcls, offsets = text([rec["question"]], device=args.device, return_offsets=True)
+        torch.save({"tokens": tokens.squeeze(0).cpu(), "qcls": qcls.squeeze(0).cpu(),
+                    "offset_mapping": offsets.squeeze(0).cpu(),
+                    "question_sha256": question_sha256(rec["question"]),
+                    "tokenizer_name": "bert-base-uncased"},
                    os.path.join(out_root, "question", f"{rec['qid']}.pt"))
 
     print(f"extracted features for {len(seen_images)} images and {len(records)} questions")

@@ -25,6 +25,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .vocab import AnswerVocab
+from .grounding import boxes_in_grid_frame, validate_cache_alignment
 
 
 class VQADataset(Dataset):
@@ -51,17 +52,21 @@ class VQADataset(Dataset):
         grid, region = self._load_image(str(rec["image_id"]))
         q = torch.load(os.path.join(self.feature_root, self.split, "question", f"{rec['qid']}.pt"))
         kg = torch.load(os.path.join(self.knowledge_root, self.split, f"{rec['qid']}.pt"))
+        validate_cache_alignment(kg, grid, region, q, rec["question"])
+        region_boxes = boxes_in_grid_frame(region, grid)
 
         sample = {
             "grid": grid["feat"], "grid_boxes": grid["boxes"],
-            "region": region["feat"], "region_boxes": region["boxes"],
+            "region": region["feat"], "region_boxes": region_boxes,
             "tokens": q["tokens"], "qcls": q["qcls"],
             "triplets": kg["triplets"],
             "vk_pairs": kg["vk_pairs"].long(),
             "tk_pairs": kg["tk_pairs"].long(),
             "target": None,
             "meta": {"qid": rec["qid"], "answers": rec.get("answers", []),
-                     "question": rec.get("question", "")},
+                     "question": rec.get("question", ""),
+                     **({"difficult_direct_answer": rec["difficult_direct_answer"]}
+                        if "difficult_direct_answer" in rec else {})},
         }
         if self.vocab is not None and rec.get("answers"):
             sample["target"] = self.vocab.soft_target(rec["answers"])

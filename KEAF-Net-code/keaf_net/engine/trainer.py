@@ -17,6 +17,7 @@ one per candidate triplet.
 from __future__ import annotations
 
 import math
+from contextlib import contextmanager
 from dataclasses import dataclass
 
 import torch
@@ -25,6 +26,21 @@ from torch.optim import AdamW
 from ..config import Config
 from ..models import KEAFNet
 from .loss import vqa_bce
+
+
+@contextmanager
+def deterministic_reasoning(model: KEAFNet):
+    """Disable reasoning dropout for paired LOO measurements, then restore it."""
+    roots = (model.hgaf, model.mhsr)
+    states = [(module, module.training) for root in roots for module in root.modules()]
+    try:
+        for root in roots:
+            root.eval()
+        with torch.no_grad():
+            yield
+    finally:
+        for module, training in states:
+            module.training = training
 
 
 @dataclass
@@ -47,7 +63,7 @@ class Trainer:
         self._step = 0
 
     # --------------------------------------------------------------- LOO loss
-    def _akf_loss(self, out: dict, target: torch.Tensor, loss_full: torch.Tensor) -> torch.Tensor:
+    def _akf_loss(self, out: dict, target: torch.Tensor) -> torch.Tensor:
         """Retrieval-consistency loss from sampled LOO differences."""
         batch = out["batch"]
         k_index, scores, gate = out["knowledge_index"], out["akf_scores"], out["gate"]
@@ -75,19 +91,21 @@ class Trainer:
             table[b, : perm.numel()] = nodes[perm]
 
         sampled_scores, sampled_targets = [], []
-        for r in range(s_max):
-            col = table[:, r]
-            active = col >= 0
-            if not active.any():
-                continue
-            keep_r = node_keep.clone()
-            keep_r[col[active]] = 0.0
-            with torch.no_grad():
+        with deterministic_reasoning(self.model):
+            logits_full, _ = self.model.reason(batch, node_keep)
+            loss_full = vqa_bce(logits_full, target, reduce=False)
+            for r in range(s_max):
+                col = table[:, r]
+                active = col >= 0
+                if not active.any():
+                    continue
+                keep_r = node_keep.clone()
+                keep_r[col[active]] = 0.0
                 logits_r, _ = self.model.reason(batch, keep_r)
                 loss_r = vqa_bce(logits_r, target, reduce=False)
-            delta = loss_r[active] - loss_full[active]            # Eq. (11)
-            sampled_scores.append(scores[pos_of[col[active]]])
-            sampled_targets.append(delta)
+                delta = loss_r[active] - loss_full[active]            # Eq. (11)
+                sampled_scores.append(scores[pos_of[col[active]]])
+                sampled_targets.append(delta)
 
         if not sampled_scores:
             return scores.new_zeros(())
@@ -102,8 +120,7 @@ class Trainer:
             raise ValueError("answer_target is required for training")
 
         vqa = vqa_bce(out["logits"], target)
-        loss_full = vqa_bce(out["logits"].detach(), target, reduce=False)
-        akf = self._akf_loss(out, target, loss_full)
+        akf = self._akf_loss(out, target)
         total = vqa + cfg.optim.akf_loss_weight * akf
 
         kept = (out["gate"].detach() > 0).float().mean() if out["gate"].numel() else torch.zeros(())

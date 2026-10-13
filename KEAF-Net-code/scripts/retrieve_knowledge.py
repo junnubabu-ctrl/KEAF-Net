@@ -23,10 +23,12 @@ from tqdm import tqdm
 
 from keaf_net.config import load_config
 from keaf_net.knowledge import EntityLinker, KnowledgeIndex, KnowledgeRetriever
+from keaf_net.data.grounding import (phrase_pairs_to_tokens, question_sha256,
+                                     region_pairs_to_visual)
 
 
-def _noun_phrases(nlp, question: str) -> list[str]:
-    return [chunk.text for chunk in nlp(question).noun_chunks]
+def _noun_phrases(nlp, question: str) -> list[tuple[str, int, int]]:
+    return [(chunk.text, chunk.start_char, chunk.end_char) for chunk in nlp(question).noun_chunks]
 
 
 def main() -> None:
@@ -57,17 +59,45 @@ def main() -> None:
         records = json.load(fh)
 
     for rec in tqdm(records, desc=f"retrieve {args.split}"):
-        labels = region_labels.get(str(rec["image_id"]), [])[:10]    # top-10 detector labels
-        phrases = _noun_phrases(nlp, rec["question"])
+        feature_dir = os.path.join(cfg.data.feature_root, args.split)
+        grid = torch.load(os.path.join(feature_dir, "grid", f"{rec['image_id']}.pt"))
+        region = torch.load(os.path.join(feature_dir, "region", f"{rec['image_id']}.pt"))
+        question = torch.load(os.path.join(feature_dir, "question", f"{rec['qid']}.pt"))
+        if question.get("question_sha256") != question_sha256(rec["question"]) or "offset_mapping" not in question:
+            raise ValueError("question cache requires matching text and BERT offsets; rebuild features")
+        if question["offset_mapping"].shape != (question["tokens"].size(0), 2):
+            raise ValueError("cached BERT offsets must align with the token feature rows")
+        raw_labels = region_labels.get(str(rec["image_id"]), [])
+        # A list follows detector row order. An explicit object allows selected
+        # labels to retain their original region row IDs.
+        if isinstance(raw_labels, dict):
+            labels = raw_labels["labels"][:10]
+            region_ids = raw_labels["region_indices"][:10]
+        else:
+            labels = raw_labels[:10]
+            region_ids = list(range(len(labels)))
+        if len(labels) != len(region_ids):
+            raise ValueError("detector labels and region_indices must have equal lengths")
+        chunks = _noun_phrases(nlp, rec["question"])
+        phrases = [text for text, _, _ in chunks]
         triplets = retriever.retrieve(labels + phrases)
 
-        embeddings = sbert.encode([t.linearise() for t in triplets], convert_to_tensor=True).cpu()
-        vk = linker.link(labels, triplets)                            # visual-knowledge links
-        tk = linker.link(phrases, triplets)                           # textual-knowledge links
+        embeddings = (sbert.encode([t.linearise() for t in triplets], convert_to_tensor=True).cpu()
+                      if triplets else torch.empty(0, cfg.model.knowledge_feat_dim))
+        vk = region_pairs_to_visual(
+            [(region_ids[label], knowledge) for label, knowledge in linker.link(labels, triplets)],
+            grid["feat"].size(0), region["feat"].size(0),
+        )
+        tk = phrase_pairs_to_tokens(linker.link(phrases, triplets),
+                                    [(start, end) for _, start, end in chunks], question["offset_mapping"])
         torch.save({
             "triplets": embeddings,
-            "vk_pairs": torch.tensor(vk, dtype=torch.long).reshape(-1, 2),
-            "tk_pairs": torch.tensor(tk, dtype=torch.long).reshape(-1, 2),
+            "vk_pairs": vk, "tk_pairs": tk,
+            "vk_index_space": "visual_grid_then_region", "tk_index_space": "bert_token",
+            "alignment": {"version": 2, "num_grid": grid["feat"].size(0),
+                          "num_regions": region["feat"].size(0), "num_tokens": question["tokens"].size(0),
+                          "question_sha256": question_sha256(rec["question"]),
+                          "tokenizer_name": question.get("tokenizer_name")},
             "strings": [t.linearise() for t in triplets],
         }, os.path.join(out_dir, f"{rec['qid']}.pt"))
 

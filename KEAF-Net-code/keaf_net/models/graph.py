@@ -65,6 +65,14 @@ def build_sample_graph(
     nodes ordered last so the filter can address them as a contiguous block.
     """
     nv, nt, nk = v_feat.size(0), t_feat.size(0), k_feat.size(0)
+    for name, pairs, source_count in (("visual", vk_pairs, nv), ("textual", tk_pairs, nt)):
+        if pairs.ndim != 2 or pairs.size(1) != 2 or pairs.dtype != torch.long:
+            raise ValueError(f"{name} knowledge pairs must be long [links,2]")
+        if pairs.numel() and ((pairs < 0).any() or (pairs[:, 0] >= source_count).any()
+                             or (pairs[:, 1] >= nk).any()):
+            raise ValueError(f"{name} knowledge pair is outside the local node index space")
+    if boxes.shape != (nv, 4) or not torch.isfinite(boxes).all():
+        raise ValueError("visual boxes must be finite and match visual feature rows")
     t_off, k_off = nv, nv + nt
 
     node_feat = torch.cat([v_feat, t_feat, k_feat], dim=0)

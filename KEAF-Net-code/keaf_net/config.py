@@ -22,6 +22,7 @@ class ModelConfig:
     max_triplets: int = 50          # P, retrieval cap
     akf_threshold_init: float = 0.5  # c_th initialisation (learned end-to-end)
     akf_temperature: float = 0.1     # T_temp in Eq. (12)
+    akf_gate_temperature: float = 0.1  # repaired threshold-dependent STE surrogate
     akf_loo_samples: int = 10        # |S|, sampled leave-one-out triplets
 
     # Heterogeneous Graph Adaptive Fusion (Section 3.5)

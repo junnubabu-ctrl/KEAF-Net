@@ -31,7 +31,7 @@ def test_vocab_roundtrip(tmp_path):
 def test_vqa_soft_accuracy_caps_at_one():
     answers = ["dog"] * 4 + ["cat"] * 6
     assert vqa_soft_accuracy("dog", answers) == 1.0   # 4 votes -> min(1, 4/3)
-    assert abs(vqa_soft_accuracy("bird", ["bird"] + ["x"] * 9) - 1 / 3) < 1e-6
+    assert abs(vqa_soft_accuracy("bird", ["bird"] + ["x"] * 9) - 0.3) < 1e-6
 
 
 def test_wilcoxon_identical_vectors():

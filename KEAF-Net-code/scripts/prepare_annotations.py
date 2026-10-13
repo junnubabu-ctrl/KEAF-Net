@@ -85,6 +85,9 @@ def convert_aokvqa(input_path: str, coco_split: str, out: str) -> None:
             "image_file": _coco_file(coco_split, e["image_id"]),
             "question": e["question"],
             "answers": e.get("direct_answers") or [],
+            "difficult_direct_answer": e.get("difficult_direct_answer"),
+            "choices": e.get("choices", []),
+            "correct_choice_idx": e.get("correct_choice_idx"),
         })
     _dump(records, out)
 

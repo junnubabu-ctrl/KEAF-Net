@@ -17,14 +17,20 @@ from ..utils.scatter import scatter_mean
 
 
 class AdaptiveKnowledgeFilter(nn.Module):
-    def __init__(self, hidden_dim: int, threshold_init: float = 0.5, temperature: float = 0.1):
+    def __init__(self, hidden_dim: int, threshold_init: float = 0.5, temperature: float = 0.1,
+                 gate_temperature: float = 0.1):
         super().__init__()
+        if not 0 < threshold_init < 1:
+            raise ValueError("threshold_init must be strictly between 0 and 1")
+        if temperature <= 0 or gate_temperature <= 0:
+            raise ValueError("AKF temperatures must be positive")
         self.context = nn.Linear(2 * hidden_dim, hidden_dim)   # W_q | W_v, Eq. (8)
         self.context_norm = nn.LayerNorm(hidden_dim)
         self.score = nn.Linear(3 * hidden_dim, 1)              # W_a, Eq. (9)
         # c_th is learned end-to-end; stored in logit space so it stays in (0, 1)
         self.threshold_logit = nn.Parameter(torch.logit(torch.tensor(threshold_init)))
         self.temperature = temperature
+        self.gate_temperature = gate_temperature
 
     @property
     def threshold(self) -> torch.Tensor:
@@ -59,7 +65,11 @@ class AdaptiveKnowledgeFilter(nn.Module):
 
         # hard keep/discard with a straight-through estimator (Eq. 10)
         hard = (scores > self.threshold).float()
-        gate = hard.detach() + scores - scores.detach()
+        # Same hard decision in the forward pass; a threshold-dependent sigmoid
+        # surrogate gives gradients to both scores and threshold_logit. This
+        # repair is an engineering choice, not recovered historical training.
+        soft = torch.sigmoid((scores - self.threshold) / self.gate_temperature)
+        gate = hard.detach() + (soft - soft.detach())
 
         node_keep = node_feat.new_ones(node_feat.size(0))
         node_keep = node_keep.index_copy(0, k_index, gate)
