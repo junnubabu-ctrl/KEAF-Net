@@ -48,24 +48,16 @@ Ablation switches used in Section 6 are plain configuration changes:
 knowledge indexes built by passing only one input to `build_kg_csv.py`
 (Table 9).
 
-## Verification record
+## Corrected-revision verification record
 
-- **Unit tests**: 20 tests under `tests/` cover graph construction, each module
-  in isolation, the full forward/backward pass, gradient flow into every
-  trainable component, the LOO training step, evaluation, and the metric /
-  vocabulary utilities. All pass in ~2 s on CPU (`pytest`).
-- **Training smoke check**: on a fixed synthetic batch the total loss falls
-  monotonically (139.0 → 129.2 over 30 steps) with the AKF auxiliary loss
-  active and the learned threshold responding, confirming the training loop
-  optimises end-to-end.
-- **Data tooling**: converters and the knowledge merger were exercised against
-  miniature files in the exact official formats (MSCOCO question/annotation
-  pairs, A-OKVQA v1.0 entries, ConceptNet assertion rows, CSKG TSV rows).
+The legacy verification claims previously written here did not establish the
+threshold gradient or authentic benchmark execution. The current retained
+record is `verification/DC3_SOFTWARE_VERIFICATION.json` and its pytest XML.
+These are software tests and a synthetic CPU forward/backward/optimizer probe.
+They are not real-data benchmark results. See `DC3_REPAIR.md` for changes,
+cache migration and exact verification commands.
 
-## Reproducing the reported numbers
-
-Full benchmark training (Table 6: 68.7±0.2 on OK-VQA, 62.4±0.3 on A-OKVQA)
-additionally requires the datasets (~60 GB; `DATA.md`), offline feature
-extraction, and roughly the paper's hardware budget (2× RTX 3090, 20 epochs,
-3 seeds). The commands are in the README; nothing in the code path differs
-from the unit-tested one apart from scale.
+Full benchmark accuracies, multi-seed means, ablations and significance remain
+**not yet independently reproduced**. Corrected scoring, grounding and gate
+training require regenerated caches, new training and official evaluation.
+Historical checks cannot be reassigned to the repaired implementation.

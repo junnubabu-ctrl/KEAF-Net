@@ -54,7 +54,7 @@ def main() -> None:
     cfg.model.num_answers = len(vocab)
     model = KEAFNet(cfg.model)
     trainer = Trainer(model, cfg, device=cfg.device)
-    evaluator = Evaluator(model, vocab, device=cfg.device)
+    evaluator = Evaluator(model, vocab, device=cfg.device, dataset=cfg.data.dataset)
 
     total_steps = cfg.optim.epochs * max(1, len(train_loader))
     best_acc, patience, step = -1.0, 0, 0

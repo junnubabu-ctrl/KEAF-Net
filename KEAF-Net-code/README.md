@@ -30,7 +30,11 @@ The model is built from three modules:
 A_hat = Classifier( MHSR( HGAF( V, T, K_hat ) ) )
 ```
 
-## Results
+## Manuscript-reported results — not yet independently reproduced
+
+The values below are reference values from the manuscript, not outputs generated
+by this corrected revision. See `DC3_REPAIR.md` for software verification and
+remaining benchmark requirements.
 
 Accuracy (%), mean ± std over three seeds `{42, 123, 2024}`.
 
@@ -53,12 +57,13 @@ interaction between AKF and MHSR.
 
 ```bash
 git clone https://github.com/junnubabu-ctrl/KEAF-Net.git
-cd KEAF-Net
+cd KEAF-Net/KEAF-Net-code
 pip install -e .                 # core (model + training + evaluation)
 pip install -e ".[extract]"      # + offline feature extraction / retrieval
 ```
 
-Tested with Python 3.10–3.11 and PyTorch ≥ 2.0. Training used 2× NVIDIA RTX 3090.
+Tested with Python 3.10–3.11 and PyTorch ≥ 2.0. The manuscript reports training on 2× NVIDIA RTX 3090; that historical execution
+is not authenticated by these source files. This repair was checked on CPU.
 
 ## Data preparation
 
@@ -119,7 +124,8 @@ python scripts/evaluate.py --config configs/okvqa.yaml \
 Key hyperparameters (Table 4 of the paper) live in `configs/*.yaml`; the
 defaults in `keaf_net/config.py` reproduce the reported configuration. Useful
 ablation knobs: `model.num_hops` (T, Table 10), `optim.akf_loss_weight` (w_AKF),
-`model.max_triplets` (P) and `model.akf_loss_weight = 0` to disable the filter.
+`model.max_triplets` (P) and `optim.akf_loss_weight = 0` to disable its auxiliary supervision. This does
+not disable gating and is not a complete no-AKF architectural ablation.
 
 ## Repository layout
 

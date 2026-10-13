@@ -23,6 +23,8 @@ def patch_boxes(image_size: int, patch_size: int = 16) -> torch.Tensor:
     Grid patches tile the image, so each one has a well-defined box; this lets
     grid and region proposals share the visual-visual IoU rule in Algorithm 1.
     """
+    if image_size <= 0 or patch_size <= 0 or image_size % patch_size:
+        raise ValueError("image_size must be a positive multiple of patch_size")
     side = image_size // patch_size
     ys, xs = torch.meshgrid(torch.arange(side), torch.arange(side), indexing="ij")
     x1 = (xs * patch_size).flatten().float()
@@ -43,8 +45,9 @@ class VisualEncoder(nn.Module):
                 p.requires_grad_(False)
 
     @torch.no_grad()
-    def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
-        out = self.vit(pixel_values=pixel_values).last_hidden_state
+    def forward(self, pixel_values: torch.Tensor, interpolate_pos_encoding: bool = False) -> torch.Tensor:
+        out = self.vit(pixel_values=pixel_values,
+                       interpolate_pos_encoding=interpolate_pos_encoding).last_hidden_state
         return out[:, 1:]  # drop [CLS], keep patch grid
 
 
@@ -61,9 +64,15 @@ class TextEncoder(nn.Module):
             p.requires_grad_(False)
 
     @torch.no_grad()
-    def forward(self, questions: list[str], device: torch.device | str = "cpu"):
-        enc = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt").to(device)
+    def forward(self, questions: list[str], device: torch.device | str = "cpu",
+                return_offsets: bool = False):
+        enc = self.tokenizer(questions, padding=True, truncation=True, return_tensors="pt",
+                             return_offsets_mapping=return_offsets)
+        offsets = enc.pop("offset_mapping", None)
+        enc = enc.to(device)
         out = self.bert(**enc).last_hidden_state
+        if return_offsets:
+            return out, out[:, 0], offsets
         return out, out[:, 0]  # token states, [CLS]
 
 

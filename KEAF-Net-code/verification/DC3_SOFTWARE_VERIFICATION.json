@@ -1,0 +1,100 @@
+{
+  "generated_utc": "2026-10-13T02:32:17.520427+00:00",
+  "status": "software_verified_on_synthetic_fixtures",
+  "benchmark_completed": false,
+  "canonical_repository": "https://github.com/junnubabu-ctrl/KEAF-Net",
+  "base_commit": "c8a07e47cbf9084a8e2e52d65347e34fab022104",
+  "git_head": "c8a07e47cbf9084a8e2e52d65347e34fab022104",
+  "working_tree_has_repair": true,
+  "environment": {
+    "python": "3.12.14",
+    "torch": "2.14.1+cpu",
+    "cuda_available": false,
+    "verification_device": "cpu"
+  },
+  "tests": {
+    "tests": 56,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "config": {
+    "model": {
+      "hidden_dim": 32,
+      "region_feat_dim": 64,
+      "knowledge_feat_dim": 16,
+      "max_triplets": 50,
+      "akf_threshold_init": 0.5,
+      "akf_temperature": 0.1,
+      "akf_gate_temperature": 0.1,
+      "akf_loo_samples": 2,
+      "gat_heads": 4,
+      "gat_layers": 2,
+      "leaky_relu_slope": 0.2,
+      "iou_threshold": 0.3,
+      "token_window": 3,
+      "visual_text_sim": 0.4,
+      "num_hops": 3,
+      "num_answers": 10,
+      "dropout": 0
+    },
+    "optim": {
+      "lr": 0.0001,
+      "min_lr": 1e-06,
+      "weight_decay": 0.01,
+      "betas": [
+        0.9,
+        0.999
+      ],
+      "epochs": 20,
+      "batch_size": 64,
+      "grad_accum_steps": 1,
+      "warmup_ratio": 0.05,
+      "early_stop_patience": 3,
+      "grad_clip": 5.0,
+      "akf_loss_weight": 0.3
+    },
+    "data": {
+      "dataset": "okvqa",
+      "data_root": "data",
+      "feature_root": "features",
+      "knowledge_cache": "knowledge/cache",
+      "num_regions": 36,
+      "num_workers": 4,
+      "answer_vocab": "data/answer_vocab.json"
+    },
+    "seed": 42,
+    "device": "cpu",
+    "output_dir": "outputs",
+    "experiment": "keaf_net"
+  },
+  "synthetic_probe": {
+    "samples": 2,
+    "answer_logits_shape": [
+      2,
+      10
+    ],
+    "threshold_gradient": 0.003084352472797036,
+    "threshold_before": 0.5,
+    "threshold_after": 0.49997496604919434,
+    "loss": 6.900362968444824,
+    "akf_loss": 0.033078938722610474
+  },
+  "interfaces": {
+    "MiniLM_projection": [
+      384,
+      768
+    ],
+    "HGAF_output": "fused node collection [N,hidden_dim]",
+    "MHSR_input": "same node collection, batch IDs, question CLS and keep mask",
+    "historical_interfaces_authenticated": false
+  },
+  "historical_benchmark_results": "not yet independently reproduced",
+  "real_data_execution": false,
+  "required_next": [
+    "Rebuild version-2 grid/question/knowledge caches with detector coordinate provenance",
+    "Retrain corrected revision with official dataset splits and pinned encoders/knowledge",
+    "Retain complete checkpoints, predictions and official evaluator outputs",
+    "Run matched ablations, multi-seed uncertainty and robustness/cost evaluation"
+  ]
+}
